@@ -71,7 +71,7 @@ if __name__ == '__main__':
         run_script("GENERIC_exh_postprocessing.py")
 
     # Running the Collapse_Results script (to Summary and/or Daily:
-    if RUN_COLLAPSE_RESULTS_TO_SUMMARY.lower() == 'yes' or RUN_COLLAPSE_RESULTS_TO_DAILY.lower() == 'yes':
+    if RUN_COLLAPSE_RESULTS_TO_SUMMARY.lower() == 'yes' or RUN_COLLAPSE_RESULTS_TO_DAILY.lower() == 'yes' or RUN_CREATE_TRIMMED_FILE.lower():
         run_script("Collapse_Results.py")
 
     # Running the Append_Files script (Appending summary and/or daily and/or hourly):
