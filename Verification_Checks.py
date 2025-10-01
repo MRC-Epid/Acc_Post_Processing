@@ -970,29 +970,31 @@ if __name__ == '__main__':
         if config.RUN_HOUSEKEEPING.lower() == 'yes':
             summary_df = summary_df[(~summary_df['id'].isin(filenames_to_remove))]
 
-        # Printing files that have not calibrated
-        verif_checks(
-            comparison_operator=">",
-            variable="file_end_error",
-            cut_off=config.CAL_ERROR,
-            df=summary_df,
-            log=verif_log,
-            text_to_log=f"Some files have not calibrated and have an end error above {config.CAL_ERROR}- check file end errors. \n Uncalibrated data will be set to missing during post-processing.",
-            column_number=3,
-            list_of_headers=['id', 'file_start_error', 'file_end_error'],
-            text_no_error=f"All files have calibrated. No files had an end error above {config.CAL_ERROR}, no files to check.")
-
-        if config.PROCESSING.lower() == 'pampro':
+        # Printing files that have not calibrated (wave output only)
+        if config.PROCESSING.lower() == 'wave':
             verif_checks(
                 comparison_operator=">",
-                variable="mf_end_error",
+                variable="file_end_error",
                 cut_off=config.CAL_ERROR,
                 df=summary_df,
                 log=verif_log,
-                text_to_log=f"Some files have not calibrated and have an end error above {config.CAL_ERROR}  - check mf file end errors. \n Uncalibrated data will be set to missing during post-processing.",
+                text_to_log=f"Some files have not calibrated and have an end error above {config.CAL_ERROR}- check file end errors. \n Uncalibrated data will be set to missing during post-processing.",
                 column_number=3,
-                list_of_headers=['id', 'mf_start_error', 'mf_end_error'],
-                text_no_error=f"All files have calibrated. No files had an mf end error above {config.CAL_ERROR}, no files to check.")
+                list_of_headers=['id', 'file_start_error', 'file_end_error'],
+                text_no_error=f"All files have calibrated. No files had an end error above {config.CAL_ERROR}, no files to check.")
+
+        # Printing files that have not calibrated (pampro output)
+        if config.PROCESSING.lower() == 'pampro':
+            verif_checks(
+                comparison_operator="==",
+                variable="calibration_type",
+                cut_off='fail',
+                df=summary_df,
+                log=verif_log,
+                text_to_log=f"Some files failed calibration. Check file end errors. \n Uncalibrated data will be set to missing during post-processing.",
+                column_number=5,
+                list_of_headers=['id', 'file_start_error', 'calibration_type', 'file_end_error', 'mf_end_error'],
+                text_no_error=f"All files have calibrated, no files to check.")
 
         # Printing out duplicates
         verif_checks(
@@ -1199,7 +1201,7 @@ if __name__ == '__main__':
             hourly_df = hourly_df[(~hourly_df['file_id'].isin(filenames_to_remove))]
 
         # Tagging duplicates
-        tagging_duplicates_arg = ['timestamp', 'ENMO_mean', 'ENMO_30plus', 'ENMO_125plus']
+        tagging_duplicates_arg = ['device', 'timestamp', 'ENMO_mean', 'ENMO_30plus', 'ENMO_125plus']
         if 'pitch_mean' in hourly_df.columns:
             tagging_duplicates_arg.append('PITCH_mean')
         if 'roll_mean' in hourly_df.columns:
