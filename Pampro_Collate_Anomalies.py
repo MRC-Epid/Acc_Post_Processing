@@ -67,6 +67,11 @@ def anomaly_type(df, letter):
 
 # Creating time difference variables
 def create_time_diff(df, var_diff, var1, var2):
+    # Check if both variables exists before calculating time difference
+    if var1 in df.columns and var2 in df.columns:
+        df[var_diff] = (df[var1] - df[var2]).dt.total_seconds()
+    else:
+        df[var_diff] = np.nan
     df[var_diff] = (df[var1] - df[var2]).dt.total_seconds()
 
 
