@@ -739,40 +739,6 @@ def compare_enmo(df, log, create_var, var_diff, text_to_log, text_no_error):
     return df
 
 
-# --- COUNTING DIFFERENCES IN ENMO_N AND ENMO_OPLUS NOT DUE TO FIRST OR LAST TIMEPOINT IN THE FILE --- #
-def diff_enmo(df, var1, var2, var3, log, text_to_log, text_no_error):
-    """
-    Formatting datetime variables and calculating differences between timepoint variables. Printing to log if there is any differences.
-    :param df: Dataframe with the data.
-    :param var1: timepoint variable --> first_file_timepoint
-    :param var2: timepoint variable --> last_file_timepoint
-    :param var3: timepoint variable --> DATETIME_ORIG
-    :param log: Verification log.
-    :param text_to_log: Text to print if any differences
-    :param text_no_error: Text to print if no differences.
-    :return:
-    """
-    # Converting timestamps to datetime format
-    for var in (var1, var2, var3):
-        df[var] = pd.to_datetime(df[var])
-
-    # Generating differences between timepoint variables and DATETIME_ORIG
-    for time_var in (var1, var2):
-        df[f'diff_{time_var}'] = abs(df[time_var] - df[var3]) / pd.Timedelta(hours=1)
-
-    if config.REMOVE_THRESHOLDS.lower() == 'no':
-        count = df[(df['ENMO_n_0plus_diff'] > 0.01) & (df[f'diff_{var1}'] > 1) & (df[f'diff_{var2}'] > 0)].shape[0]
-
-        if count > 0:
-            add_text(log, text_to_log, 255, 0, 0)
-            add_text(log, f'Count: {count}', 0, 0, 0)
-
-        else:
-            add_text_no_error(log, text_no_error)
-
-        log.add_paragraph("\n")
-        save_verif_log(log)
-
 
 # --- Summarising enmo variables --- #
 def sum_enmo(remove_threshold, df, log, variables, text_to_log, description, text_no_files):
@@ -1221,15 +1187,6 @@ if __name__ == '__main__':
             list_of_headers=['id', 'file_id', 'device', 'timestamp', 'ENMO_mean'],
             text_no_error="There are no duplicated data in this hourly dataset")
 
-
-        # Comparing ENMO_n and ENMO_0plus * 720. If these are not equal they will be printed to the log.
-        df = compare_enmo(
-            df=hourly_df,
-            log=verif_log,
-            create_var="ENMO_0plus_check",
-            var_diff="ENMO_n_0plus_diff",
-            text_to_log="Summarising the difference between ENMO_n and ENMO_0plus * 720, if these are not equal to each other",
-            text_no_error="ENMO_n and ENMO_0plus * 720 are equal to each other for all observations. No IDs to check.")
 
         # Summarising ENMO_0plus if thresholds are not removed.
         sum_enmo(
