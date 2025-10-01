@@ -63,6 +63,8 @@ def formatting_file(import_file_name, release_level, pwear, pwear_morning, pwear
         for col in columns_to_replace:
             df.loc[df['FLAG_AXIS_FAULT'] == 1, col] = np.nan
 
+            # Setting enmo and hpfvm variables to missing if file end error above cut-off (specified in config.py)
+            df.loc[df['calibration_type'] == 'fail', col] = np.nan
 
     # Sorting dataset
     if release_level == 'summary':
@@ -84,6 +86,8 @@ def formatting_file(import_file_name, release_level, pwear, pwear_morning, pwear
 
     # Setting PWear to 0 if ENMO_mean is negative for hourly releases
         df.loc[(df['ENMO_mean'] < 0), 'Pwear'] = 0
+
+
 
     # Generating include criteria
     if release_level == 'summary' or release_level == 'daily':
@@ -276,16 +280,20 @@ def formatting_file(import_file_name, release_level, pwear, pwear_morning, pwear
             remaining_columns = ['first_file_timepoint', 'last_file_timepoint', 'device', 'FLAG_ANOMALY', *config.ANOM_VAR_PAMPRO,
                              'FLAG_AXIS_FAULT', 'file_start_error', 'file_end_error', 'mf_start_error',
                              'mf_end_error', 'calibration_type', 'calibration_method',
-                             'noise_cutoff', 'processing_epoch', 'frequency']
+                            'processing_epoch', 'frequency']
 
             if release_level == 'summary' or release_level == 'daily':
+                calibration_method_index = remaining_columns.index('calibration_method')
+                remaining_columns.insert(calibration_method_index, 'noise_cutoff')
                 noise_cutoff_index = remaining_columns.index('noise_cutoff')
                 remaining_columns.insert(noise_cutoff_index, 'TIME_RESOLUTION')
                 remaining_columns += ['include', 'imputed']
 
             if release_level == 'hourly':
-                remaining_columns += ['Battery_mean', 'days_of_data_processed', 'FLAG_MECH_NOISE', 'freeday_number',
-                                      'generic_first_timestamp', 'generic_last_timestamp', 'postend', 'prestart', 'Temperature_mean', 'valid']
+                remaining_columns += ['days_of_data_processed', 'FLAG_MECH_NOISE', 'freeday_number',
+                                      'generic_first_timestamp', 'generic_last_timestamp', 'postend', 'prestart', 'valid']
+                if config.PROCESSING.lower() == 'wave':
+                    remaining_columns += ['noice_cutoff', 'Battery_mean', 'Temperature_mean']
                 if config.count_prefixes.lower() == '1h' and 'day_valid' in df.columns:
                     remaining_columns.insert(1, 'day_valid')
             if config.USE_WEAR_LOG.lower() == 'yes':
