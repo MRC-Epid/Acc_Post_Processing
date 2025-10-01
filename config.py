@@ -131,3 +131,6 @@ SUM_PWEAR_QUAD = 9                                  # EDIT: Minumum number of ho
 DAY_PWEAR = 12                                      # EDIT: Minimum number of hours to signify each day contains enough data to be included in final release.
 DAY_PWEAR_MORNING = 3                               # EDIT: Minimum number of hours needed each day within morning quadrant to show monitor worn overnight
 DAY_PWEAR_QUAD = 3                                  # EDIT: Minumum number of hours needed each day within each of noon, afternoon and night quadrant to be included in final release.
+
+# REMOVE NEGATIVE ENMO AND HPFVM VARIABLES FROM HOURLY/DAILY RELEASES
+REMOVE_NEGATIVE_VALUES = 'Yes'                      # EDIT: This switch should be set to 'No' as default. Once you have checked any negative enmo values in the verification log (summary level checks), the switch can be set to 'Yes' and negative enmo/hpfvm values will be removed from the summary and daily release files. If any higher negative values are found, it is recommended to remove the data completely for this person.
