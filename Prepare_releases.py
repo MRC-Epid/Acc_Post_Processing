@@ -66,6 +66,13 @@ def formatting_file(import_file_name, release_level, pwear, pwear_morning, pwear
             # Setting enmo and hpfvm variables to missing if file end error above cut-off (specified in config.py)
             df.loc[df['calibration_type'] == 'fail', col] = np.nan
 
+        # Setting negative enmo and hpfvm variable to 0 (after they have been checked in the verification log) - only for summary and daily release files
+        if config.REMOVE_NEGATIVE_VALUES.lower() == 'yes':
+            if release_level == 'summary' or release_level == 'daily':
+                enmo_hpfvm_var = [col for col in df.columns if any(pattern in col for pattern in ['ENMO', 'enmo', 'HPFVM', 'hpfvm'])]
+                for col in enmo_hpfvm_var:
+                    df.loc[df[col] < 0, col] = 0
+
     # Sorting dataset
     if release_level == 'summary':
         df = df.sort_values(by='id')
@@ -671,7 +678,7 @@ if __name__ == '__main__':
     # Preparing hourly release file
     if Acc_Post_Processing_Orchestra.RUN_PREPARE_HOURLY_RELEASE.lower() == 'yes' or Acc_Post_Processing_Orchestra.RUN_PREPARE_MINUTE_LEVEL_RELEASE.lower() == 'yes':
         if config.count_prefixes.lower() == '1h':
-            Acc_Post_Processing_Orchestra.print_message("PREPARING A HOURLY RELEASE FILE")
+            Acc_Post_Processing_Orchestra.print_message("PREPARING AN HOURLY RELEASE FILE")
         if config.count_prefixes.lower() == '1m':
             Acc_Post_Processing_Orchestra.print_message("PREPARING A MINUTE LEVEL RELEASE FILE")
 
