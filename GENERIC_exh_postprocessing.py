@@ -10,7 +10,6 @@ import numpy as np
 import config
 import os
 import pandas as pd
-import pytz
 from datetime import datetime, timedelta
 from colorama import Fore
 
@@ -128,44 +127,40 @@ def merging_data(files_list, metadata_dfs, datafiles_dfs, anomalies_df):
         # Generating DATETIME variable and correcting for daylight saving. For no clock change this time stays the same as DATETIME_ORIG
         merged_df['DATETIME'] = merged_df['DATETIME_ORIG']
 
+        # Adjusting for clock changes
         if config.CLOCK_CHANGES.lower() == 'yes':
             merged_df['DATETIME_COPY'] = merged_df['DATETIME']
 
-            #Retrieving timezone information and converting datetime_copy variable to specified timezone
-            tz = pytz.timezone(config.TIMEZONE)
-            merged_df['DATETIME_COPY'] = merged_df['DATETIME_ORIG'].dt.tz_localize('UTC').dt.tz_convert(tz)
-            merged_df['BST'] = merged_df['DATETIME_COPY'].apply(lambda x: x.dst() != timedelta(0))
+            # Unpacks the dictionary with clock changes timestamps (specified in config.py) and converts to timestamp format
+            for year, (start, end) in config.transitions.items():
+                config.transitions[year] = (pd.Timestamp(start), pd.Timestamp(end))
 
-            # Creating bst variables, to check if there is a change through the data from from summer time to winter time or other way
-            prev_bst = None
+            # Flags whether each timestamp falls within daylight saving time (0=standard time, 1=daylight saving time (UK=British summer time))
+            merged_df['DST'] = 0
+            for year, (start, end) in config.transitions.items():
+                mask = (merged_df['DATETIME_ORIG'] >=start) & (merged_df['DATETIME_ORIG'] < end + timedelta(hours=1))
+                merged_df.loc[mask, 'DST'] = 1
 
-            bst_values = merged_df['BST'].unique()
+            # Check first timestamps DST flag and if multiple DST flags occur (clock change occuring)
+            dst_values = merged_df['DST'].unique()
+            first_dst = merged_df['DST'].iloc[0]
 
-            if len(bst_values) == 2 and True in bst_values and False in bst_values:
-                adjustment = 0
-                for idx in range(len(merged_df)):
-                    curr_bst = merged_df.at[idx, 'BST']
+            # Adjusting time if clock change occur in file:
+            if len(dst_values) == 2:
+                if first_dst == 0:
+                    print(f"Transition from winter to summer time detected for the file id: {file_id}. Date and time variables have been adjusted.")
+                    merged_df.loc[(merged_df['DST'] == 1), 'DATETIME_COPY'] += timedelta(hours=config.DST_HOURS)
+                if first_dst == 1:
+                    print(f"Transition from summer to winter time detected for the file id: {file_id}. Date and time variables have been adjusted.")
+                    merged_df.loc[(merged_df['DST'] == 0), 'DATETIME_COPY'] -= timedelta(hours=config.DST_HOURS)
 
-                    # If dataset goes over clock change, adding or subtracting 1 hour from DATETIME variable
-                    if prev_bst is not None and prev_bst != curr_bst:
-                        if not prev_bst and curr_bst:
+                merged_df['DATETIME'] = merged_df['DATETIME_COPY']
 
-                            adjustment += 1
-                            print(f"Transition from winter to summer time detected at 1am for the file id: {file_id}")
-
-                        elif prev_bst and not curr_bst:
-
-                             adjustment -= 1
-                             print(f"Transition from summer to winter time detected at 1am for the file id: {file_id}")
-                    # OBS! IT IS CHANGING THE CLOCK AT 1AM BOTH TIMES, FIND A WAY TO MAKE IT CHANGE AT 2AM FROM SUMMER TO WINTER TIME.
-                    merged_df.at[idx, 'DATETIME'] += timedelta(hours=adjustment)
-                    prev_bst = curr_bst
-                print("Date and time variables have been adjusted for clock changes.")
-                merged_df.drop(columns=['DATETIME_COPY', 'BST'], inplace=True)
-
+                # Dropping variables that are no longer needed
+                merged_df.drop(columns=['DST', 'DATETIME_COPY'], inplace=True)
             else:
-                merged_df.drop(columns=['DATETIME_COPY', 'BST'], inplace=True)
-                pass
+                merged_df.drop(columns=['DST', 'DATETIME_COPY'], inplace=True)
+
 
         # Calculating DATE and TIME variables with new time
         merged_df['DATE'] = pd.to_datetime(merged_df['DATETIME']).dt.date
@@ -195,11 +190,11 @@ def indicator_variable(time_resolutions, merged_dfs):
     valid_dfs = []
     for time_resolution, merged_df in zip(time_resolutions, merged_dfs):
         merged_df['prestart'] = 0
-        merged_df.loc[merged_df['DATETIME'] <= merged_df['first_file_timepoint'], 'prestart'] = 1
+        merged_df.loc[merged_df['DATETIME_ORIG'] <= merged_df['first_file_timepoint'], 'prestart'] = 1
 
         merged_df['postend'] = 0
-        merged_df.loc[merged_df['DATETIME'] > merged_df['last_file_timepoint'], 'postend'] = 1
-        merged_df.loc[merged_df['DATETIME'] > merged_df['last_file_timepoint'] - pd.Timedelta(minutes=time_resolution), 'postend'] = 1
+        merged_df.loc[merged_df['DATETIME_ORIG'] > merged_df['last_file_timepoint'], 'postend'] = 1
+        merged_df.loc[merged_df['DATETIME_ORIG'] > merged_df['last_file_timepoint'] - pd.Timedelta(minutes=time_resolution), 'postend'] = 1
 
         # Generating temporary tag to check if any valid hours. If there are any valid hours, it is dropping rows that are not valid. If no valid hours, keep all rows but flag temp_flag_no_valid_days
         merged_df['valid'] = ~(merged_df['prestart'] == 1) & ~(merged_df['postend'] == 1)
@@ -384,6 +379,7 @@ if __name__ == '__main__':
     if config.PROCESSING.lower() == 'pampro':
         anomalies_df = anomalies()
         time_resolutions, merged_dfs = merging_data(files_list, metadata_dfs, datafiles_dfs, anomalies_df)
+
     if config.PROCESSING.lower() == 'wave':
         time_resolutions, merged_dfs = merging_data(files_list, metadata_dfs, datafiles_dfs, None)
     valid_dfs = indicator_variable(time_resolutions, merged_dfs)
