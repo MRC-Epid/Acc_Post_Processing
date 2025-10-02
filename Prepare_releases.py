@@ -69,6 +69,7 @@ def formatting_file(import_file_name, release_level, pwear, pwear_morning, pwear
         # Setting negative enmo and hpfvm variable to 0 (after they have been checked in the verification log) - only for summary and daily release files
         if config.REMOVE_NEGATIVE_VALUES.lower() == 'yes':
             if release_level == 'summary' or release_level == 'daily':
+                print(f"Removing negative enmo/hpfvm values in {release_level} level release file.")
                 enmo_hpfvm_var = [col for col in df.columns if any(pattern in col for pattern in ['ENMO', 'enmo', 'HPFVM', 'hpfvm'])]
                 for col in enmo_hpfvm_var:
                     df.loc[df[col] < 0, col] = 0
