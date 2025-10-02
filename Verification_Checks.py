@@ -926,7 +926,7 @@ if __name__ == '__main__':
                          list_of_headers=list_of_headers_arg, text_no_error="All files have valid wear time. No ID's to check.")
 
         # Create include variable
-        df = include_criteria(log=verif_log, df=summary_df, text_to_log="Summarising include variable:", description= f"Include = 0: Include criteria are not met (Pwear < {config.VER_PWEAR}, Pwear morning < {config.VER_PWEAR_MORN} and Pwear noon/afternoon/night < {config.VER_PWEAR_QUAD}). \n Include = 1: Include criteria are met (Pwear >= {config.VER_PWEAR}, Pwear morning >= {config.VER_PWEAR_MORN} and Pwear noon/afternoon/night >= {config.VER_PWEAR_QUAD}).")
+        df = include_criteria(log=verif_log, df=summary_df, text_to_log="Summarising include variable:", description= f"Include = 0: Include criteria are not met (Pwear < {config.VER_PWEAR}, Pwear morning < {config.VER_PWEAR_MORN} and Pwear noon/afternoon/night < {config.VER_PWEAR_QUAD}). \n Include = 1: Include criteria are met (Pwear >= {config.VER_PWEAR}, Pwear morning >= {config.VER_PWEAR_MORN} and Pwear noon/afternoon/night >= {config.VER_PWEAR_QUAD}). \n Note: If imputing sleep data is enabled, sleep data will also be imputed if include = 1 for hours where pwear = 0. However, it is recommended to use original variables rather than imputed if include = 1.")
 
         # Tagging duplicates
         df = tagging_duplicates(df=summary_df, dups='duplicates_data', variables=['device', 'generic_first_timestamp', 'generic_last_timestamp'])
@@ -1136,8 +1136,7 @@ if __name__ == '__main__':
             verif_checks(comparison_operator='==', variable='flag_unable_to_process', cut_off=1, df=summary_df, log=verif_log, text_to_log='Some files were unable to process (they did not have an hourly/minute level file). \nOnly metadata for this file is included in the release.',
                      column_number=3, list_of_headers=['id', 'file_start_error', 'file_end_error'], text_no_error='All files were able to process. No files to check.')
 
-        # IMPUTED VARIABLE CHECKING - DOES IT MATCH FULLY WORN FILES WITH ADDITIONAL SLEEP ADDED
-
+        # IMPUTED VARIABLE CHECKING
         if config.IMPUTE_DATA.lower() == 'yes':
             summary_df = verif_impute_data(df=summary_df)
 
