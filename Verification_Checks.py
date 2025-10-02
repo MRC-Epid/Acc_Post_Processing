@@ -1141,10 +1141,6 @@ if __name__ == '__main__':
         if config.IMPUTE_DATA.lower() == 'yes':
             summary_df = verif_impute_data(df=summary_df)
 
-            print_impute_checks(df=summary_df[summary_df['include'] == 1], log=verif_log, text_to_log="Check imputed variables - check how much imputing variables effects enmo_mean",
-                              description="include = 1: Pwear overall and Pwear for each quadrant are above criteria. Enmo and IMP variables should not differ:", variables=['enmo_mean', 'enmo_mean_IMP', 'sed_30', 'sed_30_IMP', 'lpa', 'lpa_IMP', 'mvpa_125', 'mvpa_125_IMP'],
-                              condition_operator="!=", text_no_files="There are no imputed variables to check.")
-
             print_impute_checks(df=summary_df[(summary_df['include'] == 2) & (summary_df['Pwear'] > 18)], log=verif_log, text_to_log="Check imputed variables - check how much imputing variables effects enmo_mean",
                               description="include = 2: Pwear overall and Pwear for 3 quadrants are above criteria.", variables=['enmo_mean', 'enmo_mean_IMP', 'sed_30', 'sed_30_IMP', 'lpa', 'lpa_IMP', 'mvpa_125', 'mvpa_125_IMP'],
                               condition_operator="!=", text_no_files="There are no imputed variables to check.")
