@@ -244,7 +244,7 @@ def formatting_file(import_file_name, release_level, pwear, pwear_morning, pwear
             pampro_variables += ['DATE', 'day_number', 'dayofweek']
 
         if release_level == 'hourly':
-            pampro_variables += ['timestamp', 'DATETIME', 'DATETIME_ORIG', 'DATE', 'TIME', 'dayofweek', 'hourofday']
+            pampro_variables += ['DATETIME', 'DATETIME_ORIG', 'DATE', 'TIME', 'dayofweek', 'hourofday']
             if config.count_prefixes.lower() == '1m':
                 pampro_variables += ['minuteofhour']
 
@@ -336,6 +336,8 @@ def formatting_file(import_file_name, release_level, pwear, pwear_morning, pwear
 
 
         grouped = df.groupby('filename')['day_number'].count()
+        file_count = df['filename'].nunique()
+        print(Fore.YELLOW + f"Number of files/participants:  {file_count}" + Fore.RESET)
         print(Fore.YELLOW + "Filenames and rows/days per ID:" + Fore.RESET)
         for filename in unique_filename:
             count_days = grouped.get(filename, 0)
@@ -346,11 +348,13 @@ def formatting_file(import_file_name, release_level, pwear, pwear_morning, pwear
         id_list = id_column.tolist()
         unique_ids = sorted(set(id_list))
         id_counts = df['id'].value_counts().sort_index()
-        print(Fore.YELLOW + "IDs and number of rows/hours per ID:" + Fore.RESET)
+        file_count = df['filename'].nunique()
+        print(Fore.YELLOW + f"Number of files/participants:  {file_count}" + Fore.RESET)
         if config.count_prefixes.lower() == '1h':
             PREFIX = 'hours'
         if config.count_prefixes.lower() == '1m':
             PREFIX = 'minutes'
+        print(Fore.YELLOW + f"IDs and number of rows/{PREFIX} per ID:" + Fore.RESET)
         for id, count in zip(unique_ids, id_counts):
             print(Fore.YELLOW + f'{id:}   {count} files/{PREFIX}' + Fore.RESET)
 
