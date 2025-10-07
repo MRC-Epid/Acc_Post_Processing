@@ -65,8 +65,19 @@ ONLY_NEW_FILES = 'Yes'                               # EDIT: Set to 'No' if you 
 VARIABLES_TO_DROP = []     # DO NOT EDIT: Specify what variables to drop (Normally this will be ["HPFVM", "PITCH", "ROLL"]). Not tested to run on HPFVM, PITCH and ROLL yet.
 CLOCK_CHANGES = 'Yes'                               # EDIT: If set 'Yes' it will adjust data for daylight savings. Swith to 'No' if in a country without clock changes
 TIMEZONE = 'Europe/London'                          # EDIT: Change to the timezone data is collected in. To find correct name for timezone, in google type "pytz timezone" followed by the country (Or see list herehttps://gist.github.com/heyalexej/8bf688fd67d7199be4a1682b3eec7568)
+DST_HOURS = 1                                       # EDIT: Number of hours to add/subtract when a DST (daylight saving) transition occurs. Default = 1.
 USE_WEAR_LOG = 'No'                              # EDIT: Set to 'Yes' if there is a wear log and to use only certain days (specified in wear log).
 WEAR_LOG = 'example_wear_log'                           # EDIT: Name of wear log file if MERGE_WEAR_LOG is Yes.
+
+# EDIT: Clock changes timepoints
+# To adjust for daylight saving changes, the timepoints for all clock changes needs to be manually added to the list below. Format of timestamps year: ('DST Start', 'DST End'), e.g.: 2016: ('2016-03-27 01:00:00', '2016-10-30 02:00:00')
+transitions = {
+    2016: ('2016-03-27 01:00:00', '2016-10-30 02:00:00'),
+    2017: ('2017-03-26 01:00:00', '2017-10-29 02:00:00'),
+    2018: ('2018-03-25 01:00:00', '2018-10-28 02:00:00')
+}
+
+
 # DO NOT EDIT: Variables below do not need editing if you are happy with the standard file naming output.
 ANOMALIES_FILE = 'collapsed_anomalies.csv'          # DO NOT EDIT: Filename for collapsed anomalies files. This file is generated if data were processed through Pampro and if the Pampro_Collate_Anomalies are run (only if any anomalies are present in dataset)
 OUTPUT_FILE_EXT = f"{count_prefixes}_part_proc"     # DO NOT EDIT: Extension for the output files from exhaustive post processing.
