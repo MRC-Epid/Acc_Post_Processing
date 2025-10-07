@@ -123,7 +123,7 @@ def dataframe(file_name, variable):
     """
     dataframe_path = os.path.join(config.ROOT_FOLDER, config.RESULTS_FOLDER, config.SUMMARY_FOLDER, f'{file_name}.csv')
     if os.path.exists(dataframe_path):
-        df = pd.read_csv(dataframe_path, dtype={'subject_code': str})
+        df = pd.read_csv(dataframe_path, dtype={'subject_code': str, 'QC_axis_anomaly': str})
 
         file_exists = True
         if config.RUN_HOUSEKEEPING.lower() == 'yes':
@@ -523,19 +523,21 @@ def outliers(df, log, list_variables, extra_variable, sort, text_to_log, filteri
     # Filtering to only print out 10 files with highest/lowest value of enmo_mean
     if len(df) > 10:
         if filtering == 'lowest':
+            df = df[df[sort] != -1]
             df = df.nsmallest(10, sort)
+
         if filtering == 'highest':
             df = df.nlargest(10, sort)
 
     # Adding data to table
-    for index, row_data in df.iterrows():
-        if row_data[sort] != -1 and not pd.isna(row_data[sort]):
-            row_cells = table.add_row().cells
-            for i, var in enumerate(list_variables):
-                value = row_data[var]
-                if isinstance(value, (int, float)):
-                    value = round(value, 2)
-                row_cells[i].text=str(value)
+    for _, row_data in df.iterrows():
+
+        row_cells = table.add_row().cells
+        for i, var in enumerate(list_variables):
+            value = row_data[var]
+            if isinstance(value, (int, float)):
+                value = round(value, 2)
+            row_cells[i].text=str(value)
     log.add_paragraph("\n")
     save_verif_log(log)
 
@@ -1162,12 +1164,12 @@ if __name__ == '__main__':
             hourly_df = hourly_df[(~hourly_df['file_id'].isin(filenames_to_remove))]
 
         # Tagging duplicates
-        tagging_duplicates_arg = ['device', 'timestamp', 'ENMO_mean', 'ENMO_30plus', 'ENMO_125plus']
+        tagging_duplicates_arg = ['device', 'DATETIME_ORIG', 'ENMO_mean', 'ENMO_30plus', 'ENMO_125plus']
         if 'pitch_mean' in hourly_df.columns:
             tagging_duplicates_arg.append('PITCH_mean')
         if 'roll_mean' in hourly_df.columns:
             tagging_duplicates_arg.append('ROLL_mean')
-        df_filtered = hourly_df[hourly_df['timestamp'].notna()].copy()
+        df_filtered = hourly_df[hourly_df['DATETIME'].notna()].copy()
         df = tagging_duplicates(df=df_filtered, dups='dup_enmo_date', variables=tagging_duplicates_arg)
 
         # Printing out duplicates
@@ -1179,7 +1181,7 @@ if __name__ == '__main__':
             log=verif_log,
             text_to_log="There are duplicates in this hourly dataset. \n Add the duplicate file to the Housekeeping file to remove data from final dataset.",
             column_number=5,
-            list_of_headers=['id', 'file_id', 'device', 'timestamp', 'ENMO_mean'],
+            list_of_headers=['id', 'file_id', 'device', 'DATETIME', 'ENMO_mean'],
             text_no_error="There are no duplicated data in this hourly dataset")
 
 
