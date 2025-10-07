@@ -88,7 +88,6 @@ def remove_data(df):
 def creating_dummy(df, file_id, time_resolution):
     row_count = len(df)
     flag_valid_total = df['temp_flag_no_valid_days'].min()
-
     if row_count <= 1 or flag_valid_total == 1:
         dummy_df = pd.DataFrame({
             'file_id': file_id,
@@ -127,7 +126,7 @@ def creating_dummy(df, file_id, time_resolution):
 
 def trimmed_dataset(df, file_id, time_resolution, output_trimmed_df):
 
-    if row_count > 1 and flag_valid_total != 1:
+    if row_count >= 1 and flag_valid_total != 1:
         df.drop(columns='temp_flag_no_valid_days').sort_values(by=['file_id', 'DATETIME'])
 
         if output_trimmed_df == 'Yes':
@@ -194,7 +193,7 @@ def creating_headers(file_id, collapse_level, file_path, file_name):
         generic_variables.extend(['startdate', 'RecordLength', 'processing_epoch', 'generic_first_timestamp', 'generic_last_timestamp'])
 
     if collapse_level == 'daily':
-        generic_variables.extend(['DATE', 'day_number', 'dayofweek'])
+        generic_variables.extend(['DATE', 'day_number', 'dayofweek', 'generic_first_timestamp', 'generic_last_timestamp'])
 
     # Creating generic variables used for both wave and pampro output (used both in summary and daily level)
     enmo_variables = ['enmo_mean', 'enmo_0plus', 'enmo_1plus', 'enmo_2plus', 'enmo_3plus', 'enmo_4plus', 'enmo_5plus', 'enmo_10plus', 'enmo_15plus', 'enmo_20plus', 'enmo_25plus', 'enmo_30plus', 'enmo_35plus',
@@ -285,7 +284,7 @@ def creating_headers(file_id, collapse_level, file_path, file_name):
 # INPUTTING DATA TO THE EMPTY DATAFRAME
 def input_data(df, time_resolution, collapse_level):
 
-    if df is not None and not df.empty:
+    if df is not None and not df.empty and flag_valid_total != 1:
         # Creating id variable if it doesn't already exist
         if 'id' not in df.columns:
             df['file_id'] = df['file_id'].astype(str)
@@ -427,7 +426,7 @@ def input_data(df, time_resolution, collapse_level):
 
 # CREATING PWEAR VARIABLES AND INPUTTING TO THE EMPTY DATAFRAME
 def input_pwear_segment(df, dictionary, collapse_level):
-    if df is not None and not df.empty:
+    if df is not None and not df.empty and flag_valid_total != 1:
 
         variables = [
             'Pwear', 'RecordLength',
@@ -489,7 +488,7 @@ def input_pwear_segment(df, dictionary, collapse_level):
 
 # SUMMARISING HOURLY AND DAILY ENMO AND PWEAR VARIABLES
 def input_hourly_daily(df, dictionary):
-    if df is not None and not df.empty:
+    if df is not None and not df.empty and flag_valid_total != 1:
 
         weighted_hourly_means = (
             df.assign(weighted_ENMO = df['ENMO_mean'] * df['Pwear']).groupby('hourofday')
@@ -509,7 +508,7 @@ def input_hourly_daily(df, dictionary):
 
         weighted_daily_means = (
             df.assign(weighted_daily_ENMO = df['ENMO_mean'] * df['Pwear']).groupby('dayofweek')
-            .apply(lambda x: x['weighted_daily_ENMO'].sum() / x['Pwear'].sum(), include_groups=False)
+            .apply(lambda x: x['weighted_daily_ENMO'].sum() / x['Pwear'].sum() if x['Pwear'].sum() != 0 else 0, include_groups=False)
         )
         daily_enmo_variables = {
             f'enmo_mean_day{day}': weighted_daily_means.get(day, np.nan) for day in range(1, 8)
@@ -541,7 +540,7 @@ def input_hourly_daily(df, dictionary):
 
 # SUMMARISING OUTPUT VARIABLES
 def input_output_variables(df, dictionary, time_resolution, inclusion_criteria):
-    if df is not None and not df.empty:
+    if df is not None and not df.empty and flag_valid_total != 1:
 
         # ENMO MEAN
         filtered_df = df[(df['ENMO_mean'].notna()) & (df['Pwear'].notna()) & (df['Pwear'] > 0)]
@@ -603,7 +602,7 @@ def input_output_variables(df, dictionary, time_resolution, inclusion_criteria):
 
 # IMPUTING SLEEP DATA
 def impute_data(df, time_resolution, dictionary, collapse_level, inclusion_criteria):
-    if df is not None and not df.empty:
+    if df is not None and not df.empty and flag_valid_total != 1:
 
         if collapse_level == 'summary':
             max_days = df['day_number'].max()
@@ -724,7 +723,7 @@ def impute_data(df, time_resolution, dictionary, collapse_level, inclusion_crite
             # Hourly and daily Enmo and Pwear variables
             weighted_hourly_means_IMP = (
                 df.assign(weighted_ENMO_IMP=df['ENMO_mean'] * df['Pwear']).groupby('hourofday')
-                .apply(lambda x: x['weighted_ENMO_IMP'].sum() / x['Pwear'].sum(), include_groups=False)
+                .apply(lambda x: x['weighted_ENMO_IMP'].sum() / x['Pwear'].sum() if x['Pwear'].sum() != 0 else 0, include_groups=False)
             )
             hourly_enmo_IMP_variables = {
                 f'enmo_mean_hour{hour}_IMP': weighted_hourly_means_IMP.get(hour, np.nan) for hour in range(1, 25)
@@ -739,7 +738,7 @@ def impute_data(df, time_resolution, dictionary, collapse_level, inclusion_crite
 
             weighted_daily_means_IMP = (
                 df.assign(weighted_daily_ENMO_IMP=df['ENMO_mean'] * df['Pwear']).groupby('dayofweek')
-                .apply(lambda x: x['weighted_daily_ENMO_IMP'].sum() / x['Pwear'].sum(), include_groups=False)
+                .apply(lambda x: x['weighted_daily_ENMO_IMP'].sum() / x['Pwear'].sum() if x['Pwear'].sum() != 0 else 0, include_groups=False)
             )
             daily_enmo_IMP_variables = {
                 f'enmo_mean_day{day}_IMP': weighted_daily_means_IMP.get(day, np.nan) for day in range(1, 8)
@@ -770,7 +769,7 @@ def impute_data(df, time_resolution, dictionary, collapse_level, inclusion_crite
 
 # Inputting data into headers dataframe and outputting summary_means dataset
 def output_summary_means(dictionary, headers_df):
-    if df is not None and not df.empty:
+    if df is not None and not df.empty and flag_valid_total != 1:
 
         # Adding the data from the summary dictionary into the empty dataframe (using the headers)
         summary_data = pd.DataFrame([dictionary], columns=headers_df.columns)
@@ -984,29 +983,30 @@ if __name__ == '__main__':
             daily_headers_df = creating_headers(file_id, collapse_level='daily', file_path=daily_files_path, file_name=config.DAY_OVERALL_MEAN)
 
             # Counting how many days in file to loop through each day:
-            DAY_MAX = daily_df['day_number'].max()
-            for day_number in range(1, DAY_MAX + 1):
-                day_df = daily_df[daily_df['day_number'] == day_number].copy()
+            if flag_valid_total != 1:
+                DAY_MAX = daily_df['day_number'].max()
+                for day_number in range(1, DAY_MAX + 1):
+                    day_df = daily_df[daily_df['day_number'] == day_number].copy()
 
-                # Creating daily summarized variables
-                if not day_df.empty:
-                    formula = 60 / time_resolution  # Formula used when creating data for dataframe
-                    daily_summary_dict = input_data(day_df, time_resolution, collapse_level='daily')
-                    daily_summary_dict = input_pwear_segment(day_df, daily_summary_dict, collapse_level='daily')
-                    daily_summary_dict = input_output_variables(day_df, daily_summary_dict, time_resolution, inclusion_criteria=config.DAY_MIN_HOUR_INCLUSION)
+                    # Creating daily summarized variables
+                    if not day_df.empty:
+                        formula = 60 / time_resolution  # Formula used when creating data for dataframe
+                        daily_summary_dict = input_data(day_df, time_resolution, collapse_level='daily')
+                        daily_summary_dict = input_pwear_segment(day_df, daily_summary_dict, collapse_level='daily')
+                        daily_summary_dict = input_output_variables(day_df, daily_summary_dict, time_resolution, inclusion_criteria=config.DAY_MIN_HOUR_INCLUSION)
 
-                    # Impute hours
-                    if config.IMPUTE_DATA.lower() == 'yes':
-                        daily_summary_dict = impute_data(day_df, time_resolution, daily_summary_dict, collapse_level='daily', inclusion_criteria=config.DAY_MIN_HOUR_INCLUSION)
+                        # Impute hours
+                        if config.IMPUTE_DATA.lower() == 'yes':
+                            daily_summary_dict = impute_data(day_df, time_resolution, daily_summary_dict, collapse_level='daily', inclusion_criteria=config.DAY_MIN_HOUR_INCLUSION)
 
-                    # Appendinging daily means so only one file per id
-                    accumulated_dataframes = append_daily_means(daily_summary_dict, daily_headers_df, accumulated_dataframes)
+                        # Appendinging daily means so only one file per id
+                        accumulated_dataframes = append_daily_means(daily_summary_dict, daily_headers_df, accumulated_dataframes)
 
-            # Outputting daily_means csv, one per id
-            if file_id in accumulated_dataframes and not accumulated_dataframes[file_id].empty:
-                os.makedirs(daily_files_path, exist_ok=True)
-                output_file = os.path.join(daily_files_path, f'{file_id}_{config.DAY_OVERALL_MEAN}.csv')
-                accumulated_dataframes[file_id].to_csv(output_file, index=False)
+                # Outputting daily_means csv, one per id
+                if file_id in accumulated_dataframes and not accumulated_dataframes[file_id].empty:
+                    os.makedirs(daily_files_path, exist_ok=True)
+                    output_file = os.path.join(daily_files_path, f'{file_id}_{config.DAY_OVERALL_MEAN}.csv')
+                    accumulated_dataframes[file_id].to_csv(output_file, index=False)
 
         # Outputting data dictionary
         data_dic(daily_headers_df, collapse_level='daily', file_path=daily_files_path,
