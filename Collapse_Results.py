@@ -77,10 +77,7 @@ def remove_data(df):
         if config.PROCESSING.lower() == 'pampro':
             anom_F = 'Anom_F'
         if df[anom_F].min() > 0:
-            df['row'] = df.index + 1
-            max_row = df['row'].max()
-            df = df[df['row'] != max_row]
-            df.drop(columns=['row'], inplace=True)
+            df = df.iloc[:-1].copy()
 
     return df
 
