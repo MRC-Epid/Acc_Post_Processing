@@ -295,7 +295,7 @@ def input_data(df, time_resolution, collapse_level):
         # Formatting timestamp variables:
         timestamp_variables = ['generic_first_timestamp', 'generic_last_timestamp']
         for timestamp_variable in timestamp_variables:
-            df[timestamp_variable] = pd.to_datetime(df[timestamp_variable], dayfirst=True)
+            df[timestamp_variable] = pd.to_datetime(df[timestamp_variable], format='%d/%m/%Y %H:%M:%S')
             df[timestamp_variable] = df[timestamp_variable].dt.strftime('%d/%m/%Y %H:%M:%S')
 
         # Creating variables to put into the dataframe later:
