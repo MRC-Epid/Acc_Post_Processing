@@ -82,7 +82,7 @@ def remove_data(df):
     return df
 
 # CREATING "DUMMY" DATASET (EMPTY) IF ALL TIMES FALL OUTSIDE WEAR LOG TIMES OR LESS THAN 1 HOUR DATA
-def creating_dummy(df, file_id, time_resolution):
+def creating_dummy(df, file_id, time_resolution, file_path, output_type, collapse_level):
     row_count = len(df)
     flag_valid_total = df['temp_flag_no_valid_days'].min()
     if row_count <= 1 or flag_valid_total == 1:
@@ -111,11 +111,20 @@ def creating_dummy(df, file_id, time_resolution):
                 new_dummy_df[variables] = new_dummy_df[variables].astype(str)
 
         # Keep first row only
-        new_dummy_df = new_dummy_df.head(1).rename(columns={'file_id': 'id'})
-        new_dummy_df['id'] = new_dummy_df['id'].str.upper()
+        new_dummy_df = new_dummy_df.head(1)
+
+        # Renaming id variable
+        if collapse_level == 'summary':
+            new_dummy_df = new_dummy_df.rename(columns={'file_id': 'id'})
+
+        id_variables = ['id', 'file_id']
+        for var in id_variables:
+            if var in new_dummy_df:
+                new_dummy_df[var] = new_dummy_df[var].astype(str).str.upper()
 
         # Outputting dummy dataset
-        file_name = os.path.join(summary_files_path, f"{file_id}_{config.SUM_OVERALL_MEANS}.csv")
+        file_name = os.path.join(file_path, f"{file_id}_{output_type}.csv")
+
         new_dummy_df.to_csv(file_name, index=False)
 
     return row_count, flag_valid_total
@@ -174,107 +183,109 @@ def trimmed_dataset(df, file_id, time_resolution, output_trimmed_df):
 
 # CREATING DATASET WITH JUST HEADERS, TO FILL IN WITH DATA LATER ON
 def creating_headers(file_id, collapse_level, file_path, file_name):
-    # Creating generic variables (used both for wave and pampro output)
-    generic_variables = ['id',
-                         'device', 'file_start_error', 'file_end_error', 'calibration_method', 'noise_cutoff',
-                         'qc_first_battery_pct', 'qc_last_battery_pct', 'frequency', 'TIME_RESOLUTION']
+    if row_count >= 1 and flag_valid_total != 1:
 
-    if config.PROCESSING.lower() == 'wave' and collapse_level == 'daily':
-        generic_variables.extend(['processing_epoch'])
+        # Creating generic variables (used both for wave and pampro output)
+        generic_variables = ['id',
+                             'device', 'file_start_error', 'file_end_error', 'calibration_method', 'noise_cutoff',
+                             'qc_first_battery_pct', 'qc_last_battery_pct', 'frequency', 'TIME_RESOLUTION']
 
-    if config.PROCESSING.lower() == 'pampro':
-        generic_variables.extend(['subject_code', 'QC_axis_anomaly'])
+        if config.PROCESSING.lower() == 'wave' and collapse_level == 'daily':
+            generic_variables.extend(['processing_epoch'])
 
-    # Adding generic variables when collapsing to summary level
-    if collapse_level == 'summary':
-        generic_variables.extend(['startdate', 'RecordLength', 'processing_epoch', 'generic_first_timestamp', 'generic_last_timestamp'])
+        if config.PROCESSING.lower() == 'pampro':
+            generic_variables.extend(['subject_code', 'QC_axis_anomaly'])
 
-    if collapse_level == 'daily':
-        generic_variables.extend(['DATE', 'day_number', 'dayofweek', 'generic_first_timestamp', 'generic_last_timestamp'])
-
-    # Creating generic variables used for both wave and pampro output (used both in summary and daily level)
-    enmo_variables = ['enmo_mean', 'enmo_0plus', 'enmo_1plus', 'enmo_2plus', 'enmo_3plus', 'enmo_4plus', 'enmo_5plus', 'enmo_10plus', 'enmo_15plus', 'enmo_20plus', 'enmo_25plus', 'enmo_30plus', 'enmo_35plus',
-                         'enmo_40plus', 'enmo_45plus', 'enmo_50plus', 'enmo_55plus', 'enmo_60plus', 'enmo_65plus', 'enmo_70plus', 'enmo_75plus', 'enmo_80plus', 'enmo_85plus', 'enmo_90plus',
-                         'enmo_95plus', 'enmo_100plus', 'enmo_105plus', 'enmo_110plus', 'enmo_115plus', 'enmo_120plus', 'enmo_125plus', 'enmo_130plus', 'enmo_135plus', 'enmo_140plus',
-                         'enmo_145plus', 'enmo_150plus', 'enmo_160plus', 'enmo_170plus', 'enmo_180plus', 'enmo_190plus', 'enmo_200plus', 'enmo_210plus', 'enmo_220plus', 'enmo_230plus',
-                         'enmo_240plus', 'enmo_250plus', 'enmo_260plus', 'enmo_270plus', 'enmo_280plus', 'enmo_290plus', 'enmo_300plus', 'enmo_400plus', 'enmo_500plus', 'enmo_600plus',
-                         'enmo_700plus', 'enmo_800plus', 'enmo_900plus', 'enmo_1000plus', 'enmo_2000plus', 'enmo_3000plus', 'enmo_4000plus']
-
-    # Creating hpfvm variables only if this is not specified to be dropped (both wave and pampro - summary and daily)
-    hpfvm_variables = ['hpfvm_mean', 'hpfvm_0plus', 'hpfvm_1plus', 'hpfvm_2plus', 'hpfvm_3plus', 'hpfvm_4plus', 'hpfvm_5plus', 'hpfvm_10plus', 'hpfvm_15plus', 'hpfvm_20plus', 'hpfvm_25plus', 'hpfvm_30plus', 'hpfvm_35plus',
-                         'hpfvm_40plus', 'hpfvm_45plus', 'hpfvm_50plus', 'hpfvm_55plus', 'hpfvm_60plus', 'hpfvm_65plus', 'hpfvm_70plus', 'hpfvm_75plus', 'hpfvm_80plus', 'hpfvm_85plus', 'hpfvm_90plus',
-                         'hpfvm_95plus', 'hpfvm_100plus', 'hpfvm_105plus', 'hpfvm_110plus', 'hpfvm_115plus', 'hpfvm_120plus', 'hpfvm_125plus', 'hpfvm_130plus', 'hpfvm_135plus', 'hpfvm_140plus',
-                         'hpfvm_145plus', 'hpfvm_150plus', 'hpfvm_160plus', 'hpfvm_170plus', 'hpfvm_180plus', 'hpfvm_190plus', 'hpfvm_200plus', 'hpfvm_210plus', 'hpfvm_220plus', 'hpfvm_230plus',
-                         'hpfvm_240plus', 'hpfvm_250plus', 'hpfvm_260plus', 'hpfvm_270plus', 'hpfvm_280plus', 'hpfvm_290plus', 'hpfvm_300plus', 'hpfvm_400plus', 'hpfvm_500plus', 'hpfvm_600plus',
-                         'hpfvm_700plus', 'hpfvm_800plus', 'hpfvm_900plus', 'hpfvm_1000plus', 'hpfvm_2000plus', 'hpfvm_3000plus', 'hpfvm_4000plus']
-
-    # Creating pwear variables (both wave and pampro - summary and daily)
-    pwear_variables = ['Pwear', 'Pwear_morning', 'Pwear_noon', 'Pwear_afternoon', 'Pwear_night']
-
-    # Adding pwear variables when collapsing to summary level
-    if collapse_level == 'summary':
-        pwear_variables.extend(['Pwear_wkday', 'Pwear_wkend',
-                         'Pwear_morning_wkday', 'Pwear_noon_wkday', 'Pwear_afternoon_wkday', 'Pwear_night_wkday',
-                         'Pwear_morning_wkend', 'Pwear_noon_wkend', 'Pwear_afternoon_wkend', 'Pwear_night_wkend'])
-
-    # Creating one list of variables with all variables from above
-    list_of_variables = generic_variables + enmo_variables + pwear_variables
-    # hpfvm variables added to list of variables if this is not dropped (specified in config file)
-    if not any(item.lower() == "hpfvm" for item in config.VARIABLES_TO_DROP):
-        list_of_variables += hpfvm_variables
-
-    # Adding extra generic variables if processed through pampro
-    if config.PROCESSING.lower() == 'pampro':
-        list_of_variables += ['mf_start_error', 'mf_end_error', 'calibration_type']
-        # daily and hourly enmo and pwear variable headers are created if procesed through pampro and only for summary level
+        # Adding generic variables when collapsing to summary level
         if collapse_level == 'summary':
-            pwear_days = [f'pwear_day{day}' for day in range(1, 8)]
-            pwear_hours = [f'pwear_hour{hour}' for hour in range(1, 25)]
-            enmo_days = [f'enmo_mean_day{day}' for day in range(1, 8)]
-            enmo_hours = [f'enmo_mean_hour{hour}' for hour in range(1, 25)]
-            list_of_variables += pwear_days + pwear_hours + enmo_days + enmo_hours
-            # Adding Daily and hourly hpfvm variables if not dropped
-            if not any(item.lower() == "hpfvm" for item in config.VARIABLES_TO_DROP):
-                hpfvm_days = [f'hpfvm_mean_day{day}' for day in range(1, 8)]
-                hpfvm_hours = [f'hpfvm_mean_hour{hour}' for hour in range(1, 25)]
-                list_of_variables += hpfvm_days + hpfvm_hours
+            generic_variables.extend(['startdate', 'RecordLength', 'processing_epoch', 'generic_first_timestamp', 'generic_last_timestamp'])
 
-    # Creating headers if wanting to impute sleep data
-    if config.IMPUTE_DATA.lower() == 'yes':
-        enmo_IMP_variables = [var + '_IMP' for var in enmo_variables]
-        pwear_IMP_variables = [var + '_IMP' for var in pwear_variables]
-        list_of_variables += enmo_IMP_variables + pwear_IMP_variables
-        # Creating headers for hpfvm imputed if not dropped
+        if collapse_level == 'daily':
+            generic_variables.extend(['DATE', 'day_number', 'dayofweek', 'generic_first_timestamp', 'generic_last_timestamp'])
+
+        # Creating generic variables used for both wave and pampro output (used both in summary and daily level)
+        enmo_variables = ['enmo_mean', 'enmo_0plus', 'enmo_1plus', 'enmo_2plus', 'enmo_3plus', 'enmo_4plus', 'enmo_5plus', 'enmo_10plus', 'enmo_15plus', 'enmo_20plus', 'enmo_25plus', 'enmo_30plus', 'enmo_35plus',
+                             'enmo_40plus', 'enmo_45plus', 'enmo_50plus', 'enmo_55plus', 'enmo_60plus', 'enmo_65plus', 'enmo_70plus', 'enmo_75plus', 'enmo_80plus', 'enmo_85plus', 'enmo_90plus',
+                             'enmo_95plus', 'enmo_100plus', 'enmo_105plus', 'enmo_110plus', 'enmo_115plus', 'enmo_120plus', 'enmo_125plus', 'enmo_130plus', 'enmo_135plus', 'enmo_140plus',
+                             'enmo_145plus', 'enmo_150plus', 'enmo_160plus', 'enmo_170plus', 'enmo_180plus', 'enmo_190plus', 'enmo_200plus', 'enmo_210plus', 'enmo_220plus', 'enmo_230plus',
+                             'enmo_240plus', 'enmo_250plus', 'enmo_260plus', 'enmo_270plus', 'enmo_280plus', 'enmo_290plus', 'enmo_300plus', 'enmo_400plus', 'enmo_500plus', 'enmo_600plus',
+                             'enmo_700plus', 'enmo_800plus', 'enmo_900plus', 'enmo_1000plus', 'enmo_2000plus', 'enmo_3000plus', 'enmo_4000plus']
+
+        # Creating hpfvm variables only if this is not specified to be dropped (both wave and pampro - summary and daily)
+        hpfvm_variables = ['hpfvm_mean', 'hpfvm_0plus', 'hpfvm_1plus', 'hpfvm_2plus', 'hpfvm_3plus', 'hpfvm_4plus', 'hpfvm_5plus', 'hpfvm_10plus', 'hpfvm_15plus', 'hpfvm_20plus', 'hpfvm_25plus', 'hpfvm_30plus', 'hpfvm_35plus',
+                             'hpfvm_40plus', 'hpfvm_45plus', 'hpfvm_50plus', 'hpfvm_55plus', 'hpfvm_60plus', 'hpfvm_65plus', 'hpfvm_70plus', 'hpfvm_75plus', 'hpfvm_80plus', 'hpfvm_85plus', 'hpfvm_90plus',
+                             'hpfvm_95plus', 'hpfvm_100plus', 'hpfvm_105plus', 'hpfvm_110plus', 'hpfvm_115plus', 'hpfvm_120plus', 'hpfvm_125plus', 'hpfvm_130plus', 'hpfvm_135plus', 'hpfvm_140plus',
+                             'hpfvm_145plus', 'hpfvm_150plus', 'hpfvm_160plus', 'hpfvm_170plus', 'hpfvm_180plus', 'hpfvm_190plus', 'hpfvm_200plus', 'hpfvm_210plus', 'hpfvm_220plus', 'hpfvm_230plus',
+                             'hpfvm_240plus', 'hpfvm_250plus', 'hpfvm_260plus', 'hpfvm_270plus', 'hpfvm_280plus', 'hpfvm_290plus', 'hpfvm_300plus', 'hpfvm_400plus', 'hpfvm_500plus', 'hpfvm_600plus',
+                             'hpfvm_700plus', 'hpfvm_800plus', 'hpfvm_900plus', 'hpfvm_1000plus', 'hpfvm_2000plus', 'hpfvm_3000plus', 'hpfvm_4000plus']
+
+        # Creating pwear variables (both wave and pampro - summary and daily)
+        pwear_variables = ['Pwear', 'Pwear_morning', 'Pwear_noon', 'Pwear_afternoon', 'Pwear_night']
+
+        # Adding pwear variables when collapsing to summary level
+        if collapse_level == 'summary':
+            pwear_variables.extend(['Pwear_wkday', 'Pwear_wkend',
+                             'Pwear_morning_wkday', 'Pwear_noon_wkday', 'Pwear_afternoon_wkday', 'Pwear_night_wkday',
+                             'Pwear_morning_wkend', 'Pwear_noon_wkend', 'Pwear_afternoon_wkend', 'Pwear_night_wkend'])
+
+        # Creating one list of variables with all variables from above
+        list_of_variables = generic_variables + enmo_variables + pwear_variables
+        # hpfvm variables added to list of variables if this is not dropped (specified in config file)
         if not any(item.lower() == "hpfvm" for item in config.VARIABLES_TO_DROP):
-            hpfvm_IMP_variables = [var + '_IMP' for var in hpfvm_variables]
-            list_of_variables += hpfvm_IMP_variables
+            list_of_variables += hpfvm_variables
 
-        # Imputing daily and hourly pwear and enmo mean if processed through pampro and collapsing to summary level (and for hpfvm variables if not dropped)
-        if config.PROCESSING.lower() == 'pampro' and collapse_level == 'summary':
-            all_IMP = [pwear_days, pwear_hours, enmo_days, enmo_hours]
-            # Adding daily and hourly hpfvm IMP if not dropped
+        # Adding extra generic variables if processed through pampro
+        if config.PROCESSING.lower() == 'pampro':
+            list_of_variables += ['mf_start_error', 'mf_end_error', 'calibration_type']
+            # daily and hourly enmo and pwear variable headers are created if procesed through pampro and only for summary level
+            if collapse_level == 'summary':
+                pwear_days = [f'pwear_day{day}' for day in range(1, 8)]
+                pwear_hours = [f'pwear_hour{hour}' for hour in range(1, 25)]
+                enmo_days = [f'enmo_mean_day{day}' for day in range(1, 8)]
+                enmo_hours = [f'enmo_mean_hour{hour}' for hour in range(1, 25)]
+                list_of_variables += pwear_days + pwear_hours + enmo_days + enmo_hours
+                # Adding Daily and hourly hpfvm variables if not dropped
+                if not any(item.lower() == "hpfvm" for item in config.VARIABLES_TO_DROP):
+                    hpfvm_days = [f'hpfvm_mean_day{day}' for day in range(1, 8)]
+                    hpfvm_hours = [f'hpfvm_mean_hour{hour}' for hour in range(1, 25)]
+                    list_of_variables += hpfvm_days + hpfvm_hours
+
+        # Creating headers if wanting to impute sleep data
+        if config.IMPUTE_DATA.lower() == 'yes':
+            enmo_IMP_variables = [var + '_IMP' for var in enmo_variables]
+            pwear_IMP_variables = [var + '_IMP' for var in pwear_variables]
+            list_of_variables += enmo_IMP_variables + pwear_IMP_variables
+            # Creating headers for hpfvm imputed if not dropped
             if not any(item.lower() == "hpfvm" for item in config.VARIABLES_TO_DROP):
-                all_IMP += [hpfvm_days, hpfvm_hours]
+                hpfvm_IMP_variables = [var + '_IMP' for var in hpfvm_variables]
+                list_of_variables += hpfvm_IMP_variables
 
-            IMP_variables = [var + '_IMP' for sublist in all_IMP for var in sublist]
-            list_of_variables += IMP_variables
+            # Imputing daily and hourly pwear and enmo mean if processed through pampro and collapsing to summary level (and for hpfvm variables if not dropped)
+            if config.PROCESSING.lower() == 'pampro' and collapse_level == 'summary':
+                all_IMP = [pwear_days, pwear_hours, enmo_days, enmo_hours]
+                # Adding daily and hourly hpfvm IMP if not dropped
+                if not any(item.lower() == "hpfvm" for item in config.VARIABLES_TO_DROP):
+                    all_IMP += [hpfvm_days, hpfvm_hours]
 
-    if config.PROCESSING.lower() == 'pampro':
-        list_of_variables += config.ANOM_VAR_PAMPRO
+                IMP_variables = [var + '_IMP' for sublist in all_IMP for var in sublist]
+                list_of_variables += IMP_variables
 
-    if config.PROCESSING.lower() == 'wave':
-        list_of_variables.extend(['qc_anomalies_total'])
-        list_of_variables += config.ANOM_VAR_WAVE
+        if config.PROCESSING.lower() == 'pampro':
+            list_of_variables += config.ANOM_VAR_PAMPRO
 
-    if config.USE_WEAR_LOG.lower() == 'yes':
-        list_of_variables += ['start', 'end', 'flag_no_wear_info', 'flag_no_end_date', 'flag_missing_starthour', 'flag_missing_endhour']
+        if config.PROCESSING.lower() == 'wave':
+            list_of_variables.extend(['qc_anomalies_total'])
+            list_of_variables += config.ANOM_VAR_WAVE
 
-    headers_df = pd.DataFrame(columns=list_of_variables)
+        if config.USE_WEAR_LOG.lower() == 'yes':
+            list_of_variables += ['start', 'end', 'flag_no_wear_info', 'flag_no_end_date', 'flag_missing_starthour', 'flag_missing_endhour']
 
-    # Outputting empty dataframe
-    os.makedirs(summary_files_path, exist_ok=True)
-    file_name = os.path.join(file_path, f"{file_id}_{file_name}.csv")
-    headers_df.to_csv(file_name, index=False)
+        headers_df = pd.DataFrame(columns=list_of_variables)
+
+        # Outputting empty dataframe
+        os.makedirs(summary_files_path, exist_ok=True)
+        file_name = os.path.join(file_path, f"{file_id}_{file_name}.csv")
+        headers_df.to_csv(file_name, index=False)
 
     return headers_df
 
@@ -919,7 +930,7 @@ if __name__ == '__main__':
 
             # Truncating data (depending on what is specified in config file) and creating dataframe if no valid data:
             df = remove_data(df)
-            row_count, flag_valid_total = creating_dummy(df, file_id, time_resolution)
+            row_count, flag_valid_total = creating_dummy(df, file_id, time_resolution, file_path=trimmed_path, output_type=f'TRIMMED_{level}', collapse_level=level)
             df = trimmed_dataset(df, file_id, time_resolution, output_trimmed_df='Yes')
 
     # Collapsing results to summary level if specified in orchestra file
@@ -930,27 +941,29 @@ if __name__ == '__main__':
 
             # Truncating data (depending on what is specified in config file) and creating dataframe if no valid data:
             df = remove_data(df)
-            row_count, flag_valid_total = creating_dummy(df, file_id, time_resolution)
-            df = trimmed_dataset(df, file_id, time_resolution, output_trimmed_df='Yes')
 
-            # Creating empty dataframe with headers, to fill in with data later
-            summary_headers_df = creating_headers(file_id, collapse_level='summary', file_path=summary_files_path, file_name=config.SUM_OVERALL_MEANS)
+            row_count, flag_valid_total = creating_dummy(df, file_id, time_resolution, file_path=summary_files_path, output_type=config.SUM_OVERALL_MEANS, collapse_level='summary')
+            if flag_valid_total != 1:
+                df = trimmed_dataset(df, file_id, time_resolution, output_trimmed_df='Yes')
 
-            # Summarizing data and inputting into dataframe
-            formula = 60 / time_resolution   # Formula used when creating data for dataframe
-            summary_dict = input_data(df, time_resolution, collapse_level='summary')
-            summary_dict = input_pwear_segment(df, summary_dict, collapse_level='summary')
+                # Creating empty dataframe with headers, to fill in with data later
+                summary_headers_df = creating_headers(file_id, collapse_level='summary', file_path=summary_files_path, file_name=config.SUM_OVERALL_MEANS)
 
-            if config.PROCESSING.lower() == 'pampro':
-                summary_dict = input_hourly_daily(df, summary_dict)
-            summary_dict = input_output_variables(df, summary_dict, time_resolution, inclusion_criteria=config.SUM_MIN_HOUR_INCLUSION)
+                # Summarizing data and inputting into dataframe
+                formula = 60 / time_resolution   # Formula used when creating data for dataframe
+                summary_dict = input_data(df, time_resolution, collapse_level='summary')
+                summary_dict = input_pwear_segment(df, summary_dict, collapse_level='summary')
 
-            # Impute hours
-            if config.IMPUTE_DATA.lower() == 'yes':
-                summary_dict = impute_data(df, time_resolution, summary_dict, collapse_level='summary', inclusion_criteria=config.SUM_MIN_HOUR_INCLUSION)
+                if config.PROCESSING.lower() == 'pampro':
+                    summary_dict = input_hourly_daily(df, summary_dict)
+                summary_dict = input_output_variables(df, summary_dict, time_resolution, inclusion_criteria=config.SUM_MIN_HOUR_INCLUSION)
 
-            # Outputting summary means dataset
-            summary_data = output_summary_means(summary_dict, summary_headers_df)
+                # Impute hours
+                if config.IMPUTE_DATA.lower() == 'yes':
+                    summary_dict = impute_data(df, time_resolution, summary_dict, collapse_level='summary', inclusion_criteria=config.SUM_MIN_HOUR_INCLUSION)
+
+                # Outputting summary means dataset
+                summary_data = output_summary_means(summary_dict, summary_headers_df)
 
         # Outputting data dictionary
         data_dic(summary_headers_df, collapse_level='summary', file_path=summary_files_path, dictionary_name="Data_dictionary_summary_means.csv")
@@ -973,14 +986,16 @@ if __name__ == '__main__':
 
             # Truncating data (depending on what is specified in config file) and creating dataframe if no valid data:
             daily_df = remove_data(daily_df)
-            row_count, flag_valid_total = creating_dummy(daily_df, file_id, time_resolution)
-            daily_df = trimmed_dataset(daily_df, file_id, time_resolution, output_trimmed_df='Yes' if Acc_Post_Processing_Orchestra.RUN_COLLAPSE_RESULTS_TO_SUMMARY.lower() == 'no' else 'No')
 
-            # Creating empty dataframe with headers, to fill in with data later
-            daily_headers_df = creating_headers(file_id, collapse_level='daily', file_path=daily_files_path, file_name=config.DAY_OVERALL_MEAN)
-
-            # Counting how many days in file to loop through each day:
+            row_count, flag_valid_total = creating_dummy(daily_df, file_id, time_resolution, file_path=daily_files_path, output_type=config.DAY_OVERALL_MEAN, collapse_level='daily')
             if flag_valid_total != 1:
+
+                daily_df = trimmed_dataset(daily_df, file_id, time_resolution, output_trimmed_df='Yes' if Acc_Post_Processing_Orchestra.RUN_COLLAPSE_RESULTS_TO_SUMMARY.lower() == 'no' else 'No')
+
+                # Creating empty dataframe with headers, to fill in with data later
+                daily_headers_df = creating_headers(file_id, collapse_level='daily', file_path=daily_files_path, file_name=config.DAY_OVERALL_MEAN)
+
+                # Counting how many days in file to loop through each day:
                 DAY_MAX = daily_df['day_number'].max()
                 for day_number in range(1, DAY_MAX + 1):
                     day_df = daily_df[daily_df['day_number'] == day_number].copy()
