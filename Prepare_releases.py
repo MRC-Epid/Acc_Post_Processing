@@ -30,7 +30,7 @@ def formatting_file(import_file_name, release_level, pwear, pwear_morning, pwear
 
     file_path = os.path.join(config.ROOT_FOLDER, config.RESULTS_FOLDER, config.SUMMARY_FOLDER, import_file_name)
     if os.path.exists(file_path):
-        df = pd.read_csv(file_path, dtype={'subject_code': str})
+        df = pd.read_csv(file_path, dtype={'subject_code': str, 'QC_axis_anomaly': object})
 
     else:
         print(f"The file {file_path} does not exist. The release on {release_level} level could not be prepared.")
