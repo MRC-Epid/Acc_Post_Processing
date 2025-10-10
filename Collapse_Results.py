@@ -114,7 +114,7 @@ def creating_dummy(df, file_id, time_resolution, file_path, output_type, collaps
         new_dummy_df = new_dummy_df.head(1)
 
         # Renaming id variable
-        if collapse_level == 'summary':
+        if collapse_level == 'summary' or collapse_level == 'daily':
             new_dummy_df = new_dummy_df.rename(columns={'file_id': 'id'})
 
         id_variables = ['id', 'file_id']
