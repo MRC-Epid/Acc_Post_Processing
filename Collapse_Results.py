@@ -922,16 +922,20 @@ if __name__ == '__main__':
     if Acc_Post_Processing_Orchestra.RUN_CREATE_TRIMMED_FILE.lower() == 'yes' and Acc_Post_Processing_Orchestra.RUN_COLLAPSE_RESULTS_TO_SUMMARY.lower() == 'no' and Acc_Post_Processing_Orchestra.RUN_COLLAPSE_RESULTS_TO_DAILY.lower() == 'no':
         if config.count_prefixes.lower() == '1h':
             level = 'HOURLY'
+            file_extension = '1h'
         if config.count_prefixes.lower() == '1m':
             level = 'MINUTE LEVEL'
+            file_extension = '1m'
         Acc_Post_Processing_Orchestra.print_message(f"CREATING TRIMMED {level} FILES")
         for file_id in file_list:
+
             time_resolution, df = reading_part_proc(date_orig='DATETIME_ORIG')
 
             # Truncating data (depending on what is specified in config file) and creating dataframe if no valid data:
             df = remove_data(df)
-            row_count, flag_valid_total = creating_dummy(df, file_id, time_resolution, file_path=trimmed_path, output_type=f'TRIMMED_{level}', collapse_level=level)
-            df = trimmed_dataset(df, file_id, time_resolution, output_trimmed_df='Yes')
+            row_count, flag_valid_total = creating_dummy(df, file_id, time_resolution, file_path=trimmed_path, output_type=f'TRIMMED_{file_extension}', collapse_level=level)
+            if flag_valid_total != 1:
+                df = trimmed_dataset(df, file_id, time_resolution, output_trimmed_df='Yes')
 
     # Collapsing results to summary level if specified in orchestra file
     if Acc_Post_Processing_Orchestra.RUN_COLLAPSE_RESULTS_TO_SUMMARY.lower() == 'yes':
