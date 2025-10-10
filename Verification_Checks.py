@@ -1001,7 +1001,7 @@ if __name__ == '__main__':
             text_no_error=f"All recordings are above {config.MIN_INCLUSION_HRS} hours. No devices to check."
         )
 
-        # Checking for any anomalies
+        # Checking for any timestamp anomalies
         variable_arg = ['QC_anomaly_G', 'QC_anomaly_F'] if config.PROCESSING.lower() == 'wave' else ['Anom_F']
         anomaly_column_number_arg = 4 if config.PROCESSING.lower() == 'wave' else 3
         anomaly_list_headers_arg = ['id', 'device', 'QC_anomaly_G', 'QC_anomaly_F'] if config.PROCESSING.lower() == 'wave' else ['id', 'device', 'Anom_F']
@@ -1015,6 +1015,19 @@ if __name__ == '__main__':
             column_number=anomaly_column_number_arg,
             list_of_headers=anomaly_list_headers_arg,
             text_no_error="There are no timestamp anomalies in the files. No files to check.")
+
+        # Checking for any axis anomalies
+        verif_checks(
+            comparison_operator="==",
+            variable='QC_axis_anomaly',
+            cut_off='True',
+            df=summary_df,
+            log=verif_log,
+            text_to_log=f"There are axis anomalies in the files. It is recommended to remove these devices from circulation. The data for these files will be set to missing in the release files and include = 0.",
+            column_number=3,
+            list_of_headers=['id', 'device', 'QC_axis_anomaly'],
+            text_no_error=f"There are no axis anomalies in the files. No files to check."
+        )
 
         # Checking first and last battery percentage
         verif_checks(
