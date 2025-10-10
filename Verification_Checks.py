@@ -1017,17 +1017,18 @@ if __name__ == '__main__':
             text_no_error="There are no timestamp anomalies in the files. No files to check.")
 
         # Checking for any axis anomalies
-        verif_checks(
-            comparison_operator="==",
-            variable='QC_axis_anomaly',
-            cut_off='True',
-            df=summary_df,
-            log=verif_log,
-            text_to_log=f"There are axis anomalies in the files. It is recommended to remove these devices from circulation. The data for these files will be set to missing in the release files and include = 0.",
-            column_number=3,
-            list_of_headers=['id', 'device', 'QC_axis_anomaly'],
-            text_no_error=f"There are no axis anomalies in the files. No files to check."
-        )
+        if config.PROCESSING.lower() == 'pampro':
+            verif_checks(
+                comparison_operator="==",
+                variable='QC_axis_anomaly',
+                cut_off='True',
+                df=summary_df,
+                log=verif_log,
+                text_to_log=f"There are axis anomalies in the files. It is recommended to remove these devices from circulation. The data for these files will be set to missing in the release files and include = 0.",
+                column_number=3,
+                list_of_headers=['id', 'device', 'QC_axis_anomaly'],
+                text_no_error=f"There are no axis anomalies in the files. No files to check."
+            )
 
         # Checking first and last battery percentage
         verif_checks(
