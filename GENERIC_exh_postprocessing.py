@@ -128,7 +128,7 @@ def merging_data(file_id, metadata_df, datafile_df, anomalies_df):
         # Flags whether each timestamp falls within daylight saving time (0=standard time, 1=daylight saving time (UK=British summer time))
         merged_df['DST'] = 0
         for year, (start, end) in config.transitions.items():
-            mask = (merged_df['DATETIME_ORIG'] >=start) & (merged_df['DATETIME_ORIG'] < end + timedelta(hours=1))
+            mask = (merged_df['DATETIME_ORIG'] >=start) & (merged_df['DATETIME_ORIG'] < end)
             merged_df.loc[mask, 'DST'] = 1
 
         # Check first timestamps DST flag and if multiple DST flags occur (clock change occuring)
