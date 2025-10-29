@@ -307,7 +307,7 @@ def tagging_duplicates(df, dups, variables):
     :param variables: variables to check if there are duplicates.
     :return: df: The updated dataframe.
     """
-    df[dups] = df.duplicated(subset=variables).astype(int)
+    df[dups] = df.duplicated(subset=variables, keep=False).astype(int)
     return df
 
 # --- Printing summary statistics of all pwear variabels --- #
@@ -971,7 +971,7 @@ if __name__ == '__main__':
             cut_off=0,
             df=summary_df,
             log=verif_log,
-            text_to_log="There are duplicates in this summary dataset. \n Add the duplicate file to the Housekeeping file to remove data from final dataset.",
+            text_to_log="There are duplicates in this summary dataset. \nThe list below are duplicates based on timestamp and device number (but could be different id). \nLook through the files, and see if any of the files should be removed. Add the duplicate file to the Housekeeping file to remove data from final dataset.",
             column_number=4,
             list_of_headers=['id', 'device', 'generic_first_timestamp', 'generic_last_timestamp'],
             text_no_error="There are no duplicated data in this summary dataset")
@@ -1186,16 +1186,29 @@ if __name__ == '__main__':
         df_filtered = hourly_df[hourly_df['DATETIME'].notna()].copy()
         df = tagging_duplicates(df=df_filtered, dups='dup_enmo_date', variables=tagging_duplicates_arg)
 
+        # Keep only rows that are tagged as duplicates
+        df_dups_only = df[df['dup_enmo_date'] == 1].copy()
+        # Count duplicates per id
+        dup_counts = (
+            df_dups_only.groupby('id')
+            .size()
+            .reset_index(name='hours_duplicated')
+        )
+        # Now, for each id keep only the first duplicate row
+        df_dups_first = df_dups_only.sort_values('DATETIME').groupby('id', as_index=False).first()
+        # Merge the counts in, so each row knows how many duplicates that device had
+        df_dups_first = df_dups_first.merge(dup_counts, on='id', how='left')
+
         # Printing out duplicates
         verif_checks(
             comparison_operator="!=",
             variable="dup_enmo_date",
             cut_off=0,
-            df=df_filtered,
+            df=df_dups_first,
             log=verif_log,
-            text_to_log="There are duplicates in this hourly dataset. \n Add the duplicate file to the Housekeeping file to remove data from final dataset.",
-            column_number=5,
-            list_of_headers=['id', 'file_id', 'device', 'DATETIME', 'ENMO_mean'],
+            text_to_log="There are duplicates in this hourly dataset. \nThe list below are duplicates based on timestamp and device number (but could be different id). \nLook through the files, and see if any of the files should be removed. \nThe hours_duplicated displays how many hours is duplicated in the hourly output file. \nAdd the duplicate file id to the Housekeeping file to remove data from final dataset.",
+            column_number=6,
+            list_of_headers=['id', 'file_id', 'device', 'DATETIME', 'ENMO_mean', 'hours_duplicated'],
             text_no_error="There are no duplicated data in this hourly dataset")
 
 
