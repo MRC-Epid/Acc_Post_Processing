@@ -614,11 +614,11 @@ def data_dictionary(df, filename, release_level, pwear, pwear_quad, append_level
         if release_level == 'summary' or release_level == 'daily':
             if config.IMPUTE_DATA.lower() == 'yes':
                 calibration_labels.update({
-                    "include": f'1=Pwear>={pwear} & all Pwear_quads>={pwear_quad}. 2=Pwear>={pwear}, pwear_morning<{pwear_quad} and pwear_noon/afternoon/night>={pwear_quad}.',
+                    "include": f'0= Include criteria are not met (Pwear<{pwear} or pwear_noon/afternoon/night<{pwear_quad}), 1= Include criteria are met (Pwear>={pwear} & all Pwear_quads>={pwear_quad}). 2= Sleep data are imputed (Pwear>={pwear}, pwear_morning<{pwear_quad} and pwear_noon/afternoon/night>={pwear_quad}). \n Note: If imputing sleep data is enabled, sleep data will also be imputed if include = 1 for hours where pwear = 0. However, it is recommended to use original variables rather than imputed if include = 1',
                     "imputed": "1=Data imputed between 00:00-06:00 if not worn (proportional to Pwear)"
                 })
             else:
-                calibration_labels.update({"include": f'1=Pwear>={pwear} & all Pwear_quads>={pwear_quad}'})
+                calibration_labels.update({"include": f'0= Include criteria are not met (Pwear<{pwear} or pwear_noon/afternoon/night<{pwear_quad}), 1= Include criteria are met (Pwear>={pwear} & all Pwear_quads>={pwear_quad}). \n Note: If imputing sleep data is enabled, sleep data will also be imputed if include = 1 for hours where pwear = 0. However, it is recommended to use original variables rather than imputed if include = 1'})
 
         variable_label.update(calibration_labels)
 
