@@ -72,7 +72,6 @@ def create_time_diff(df, var_diff, var1, var2):
         df[var_diff] = (df[var1] - df[var2]).dt.total_seconds()
     else:
         df[var_diff] = np.nan
-    df[var_diff] = (df[var1] - df[var2]).dt.total_seconds()
 
 
 
